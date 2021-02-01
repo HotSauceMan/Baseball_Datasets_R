@@ -1,0 +1,298 @@
+---
+title: "Chp.2"
+author: "Ambar Mishra"
+date: "12/21/2020"
+output: html_document
+---
+# Introduction
+
+Here is my code for accomplishing some of the tasks for Chapter 2 of Analyzing Baseball Datasets with R. This book serves a guide to all of my code chunks. I will form my own plots based on the modified code which I form.  
+
+
+# Coding
+
+## Installing Packages
+
+Here, I will install the packages which are needed:
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+library(ggplot2)
+```
+
+## Spahn Analysis
+
+We will be using the Spahn dataset and conducting some analysis on the dataset. 
+
+```{r}
+spahn_data <- read.csv("spahn.csv")
+View(spahn_data)
+```
+
+
+Let me slice and select the dataset to receieve a table with 4 rows and 10 columns
+
+```{r}
+spahn_data %>% slice(1:4) %>% select(1:12)
+```
+
+As we can see, there are 4 rows containing data of the first four years of Warren Spahn's career. He played his first four years on the BSN team. He had a huge ERA of 5.74 in his rookie year (1942), however his ERA declined in the years of 1946 and 1947 as his lowest ERA was 2.33. 
+
+Let me see if there is any relation between his age and his ERA. 
+
+```{r}
+spahn_data %>% slice(1:10) %>% select(Age, ERA) 
+```
+
+As we can see, there is no steady increase or decrease in the ERA of Warren Spahn. 
+
+Let us set the quantities for the summarize function (According to the book's version):
+
+```{r}
+spahn_data %>% summarize(LO = min(ERA),
+            QL = quantile(ERA, 0.25), QH = quantile(ERA, 0.75),
+            M = median(ERA), HI = max(ERA))
+```
+
+Here are our quantities as described by the book. Our smallest ERA of Warren Spahn's pitching career was 2.1 while his highest ERA was 5.74. His average ERA is 3.04. 
+
+
+Let me try to find the same summary for his Innings pitched throughout his career. 
+
+```{r}
+spahn_data %>% summarize(LO = min(IP),
+            QL = quantile(IP, 0.25), QH = quantile(IP, 0.75),
+            M = median(IP), HI = max(IP))
+```
+
+He pitched on a range of 257 to 290 innings per year which is extremely great for a pitcher. He pitched a max of 310 innings in one year of his career can nearly be equivalent to 30-40 games where he has pitched. 
+
+To find the age of Warren Spahn's highest ERA and IP, we can do two separate chunks. 
+
+```{r}
+spahn_data %>% filter(ERA == max(ERA)) %>% select(Age, Year)
+```
+
+Pitcher Warren Spahn had his highest era at 21 years old at the 1942 season, which was his rookie season. 
+
+```{r}
+spahn_data %>% filter(IP == max(IP)) %>% select(Age, Year)
+```
+
+During the 1951 season and at age 30, Pitcher Spahn had his highest innings pitched. 
+
+## Introducing FIP 
+
+FIP is another sabermetric measure to use regarding using fielding independent pitching to find Spahn's pitching performance dependent on plays which do not include fielders. We will utilize the mutate function to construct this. 
+
+```{r}
+spahn_data %>%
+  mutate(FIP = (13 * HR + 3* BB - 2 * SO)/ IP) -> spahn_data
+```
+
+
+Let us see Spahn's FIP throughout his age
+
+```{r}
+spahn_data %>%
+  arrange(FIP) %>%
+  select(Year, Age, ERA, FIP) %>%
+  head()
+```
+
+
+In this dataframe, we have Spahn's FIP throughout the years while taking into account his year, age and ERA in the major leagues. His FIP had been highest during the 1947 and 1956 season which were in the middle stage of his career. 
+
+Let me view Spahn's performance in both teams he has played for:
+
+```{r}
+spahn_data %>% filter(Tm == 'BSN' | Tm == "MLN") -> spahn_new_1
+```
+
+Let us form factor levels since Spahn has pitched for only two teams. According to the book, the third Tm is TOT, so I can remove that column 
+
+```{r}
+spahn_data <- spahn_new_1 %>%
+  mutate(Tm = factor(Tm, levels = c("BSN", "MLN")))
+```
+
+I can find the summary statistics for these seasons through the following code.
+
+```{r}
+spahn_new_1 %>% 
+  group_by(Tm) %>%
+  summarize(mean_W.L = mean(W.L, na.rm = TRUE),
+            mean_ERA = mean(ERA),
+            mean_WHIP = mean(WHIP))
+```
+
+With this chunk, I was able to find the mean wins and losses, ERA and WHIP for each of the teams. BSN has a higher ERA by 0.24.
+
+
+## Merging with multple data frames
+
+Let us read the batting statistics for the teams in the MLB. 
+
+```{r}
+Batting_stats <- read.csv("Batting.csv")
+```
+
+
+Let us filter out by setting Runs Batted In (RBI) greater than 100.
+
+```{r}
+Batting_stats %>% filter(RBI > 100)-> Batting_stats
+```
+
+```{r}
+Batting_stats <- Batting_stats[order(-Batting_stats$RBI),]
+head(Batting_stats,40)
+```
+
+This allows us to view players who have more than 100 RBIS. As you can see, I ordered it in descending order as the player Wilsoha01 had the highest amount of RBI's (191)
+
+
+## Vectors
+
+Let us attempt to find the Win.Pct for Spahn pitcher. I will create two hypothetical vectors, one for Wins and one for Losses, in order to assist with the calculation for Win.Pct. 
+
+```{r}
+Wins <- c(8, 21, 15, 21, 21, 22,14)
+Losses <- c(5, 10, 12, 14, 17, 14, 19)
+```
+
+Now, we shall calculate Spahn's Winning Percentage
+
+```{r}
+Win.Pct <- 100* Wins / (Wins + Losses)
+```
+
+Here is our Winning Percentage:
+
+```{r}
+Win.Pct
+```
+
+Let us use the seq() to create patterned data and store it into a variable called Years_Played for Spahn:
+
+```{r}
+Years_played <- seq(from = 1946, to = 1952)
+Years_played
+# You can also do Year <- 1946:1952
+```
+
+Since Spahn has been born in the year of 1921, we can compute his age by subtracting the Years vector by 1921. 
+
+```{r}
+Age <- Years_played - 1921
+Age
+```
+
+With these ages, let us see the plot between Winning Percentage and Spahn's Age:
+
+```{r}
+plot(Age, Win.Pct)
+```
+
+At age 26, Spahn was at his prime with an above 80% winning percentage. However, his six seasons were strong since his winning percentage had stayed over 50%. 
+
+Let us find some of the summary statistics for Winning Percentage. 
+
+```{r}
+mean(Win.Pct)
+```
+
+His winning percentage is above 50% as it is 57.66% which is very impactful for a pitcher. He had successful seasons in the ages 25 to 31. 
+
+```{r}
+max(Win.Pct)
+min(Win.Pct)
+```
+
+As shown in our plot, the maximum winning Percentage had been 67.74% for Spahn while his minimum winning percentage had been 42.42%. 
+
+
+Let us see Spahn's career winning percentage using the following formula:
+
+```{r}
+100* sum(Wins) / (sum(Wins) + sum(Losses))
+```
+
+Spahn's career winning percentage was 57.277%
+
+## Extracting Parts of Vector
+
+If I wanted to get the first, second and sixth entries in the Wins vector, I would do: 
+
+```{r}
+Wins[c(1, 2, 6)]
+```
+
+These are the values located in this vector. 
+
+I want to see if Spahn has had yearly winning percentages which were above 70%. 
+
+```{r}
+Win.Pct > 70
+```
+
+Spahn has never had a season winning percentage which was above 70%. Let me bring it down to 60%
+
+```{r}
+Win.Pct > 60 
+```
+
+Out of the 7 total seasons, Spahn has had a winning percentage over 60% in three out of his seven seasons. 
+
+Let me see if he has won more than 15 games and maintained a winning percentage over 60%:
+
+```{r}
+Wins > 15 & Win.Pct > 60
+```
+
+Out of the seven seasons, there has been 2 seasons where Spahn has had over 15 wins in the season along with maintaining an over 60% winning percentage. 
+
+Let me find the year in which Spahn had the highest winning percentage:
+
+```{r}
+Years_played[Win.Pct == max(Win.Pct)]
+```
+
+The 1947 season was where Spahn had his highest winning percentage. 
+
+Book Exericse: In what seasons did the number of decisions exceed 30 for Spahn?
+
+```{r}
+Years_played[Wins + Losses > 30]
+```
+
+
+These five seasons resulted in Spahn's decisions exceeding 30. 
+
+## Objects and containers in R
+
+Let me create parameters for a dataframe which has information regarding the World Series winners from 2008 to 2017. 
+
+```{r}
+Years = 2008:2017
+NL <- c("PHI", "PHI", "SFN", "SLN", "SFN", "SLN", "SFN", "NYN", "CHN", "LAN")
+AL <- c("TBA", "NYA", "TEX", "TEX", "DET", "BOS", "KCA", "KCA", "CLE", "HOU")
+Winner <- c("NL", "AL", "NL", "NL", "NL", "AL", "NL", "AL", "NL", "AL")
+N_games <- c(5, 6, 5, 7, 4, 7, 7, 5, 7, 7)
+```
+
+
+```{r}
+World_Series_Results <- tibble(Year = Years, NL_team = NL, AL_team = AL, N_games = N_games, Winner = Winner)
+World_Series_Results
+```
+
+
+Here is my dataframe containing the information regarding the World Series from the years 2008 to 2017. 
